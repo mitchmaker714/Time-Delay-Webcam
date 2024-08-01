@@ -3,10 +3,15 @@ import numpy as np
 from collections import deque
 
 # Set the time delay in seconds
-time_delay = 60
+time_delay = 5
 
-# Initialize the video capture with the correct camera index (usually 0 for primary USB webcam)
-cap = cv2.VideoCapture(0)  # Change this index if needed
+# Initialize the video capture with optimized settings
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Using V4L2 backend
+
+# Set a lower resolution and a higher frame rate for better performance
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 854)
+cap.set(cv2.CAP_PROP_FPS, 30)
 
 # Verify if the webcam was opened correctly
 if not cap.isOpened():
@@ -22,6 +27,9 @@ frame_delay = int(fps * time_delay)
 # Create a deque to store frames for the delay
 frame_queue = deque(maxlen=frame_delay)
 
+skip_frames = 2
+frame_count = 0
+
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -29,17 +37,21 @@ while True:
     if not ret:
         break
 
-    # Add the current frame to the deque
-    frame_queue.append(frame)
+    # Skip frames to reduce load
+    if frame_count % skip_frames == 0:
+        # Add the current frame to the deque
+        frame_queue.append(frame)
 
-    # If the deque is filled, get the oldest frame for delayed display
-    if len(frame_queue) == frame_delay:
-        delayed_frame = frame_queue.popleft()
-        cv2.imshow('Delayed Video', delayed_frame)
-    else:
-        # Display black frames until the delay period is reached
-        black_frame = np.zeros_like(frame)
-        cv2.imshow('Delayed Video', black_frame)
+        # If the deque is filled, get the oldest frame for delayed display
+        if len(frame_queue) == frame_delay:
+            delayed_frame = frame_queue.popleft()
+            cv2.imshow('Delayed Video', delayed_frame)
+        else:
+            # Display black frames until the delay period is reached
+            black_frame = np.zeros_like(frame)
+            cv2.imshow('Delayed Video', black_frame)
+
+    frame_count += 1
 
     # Break the loop on 'q' key press
     if cv2.waitKey(1) & 0xFF == ord('q'):
