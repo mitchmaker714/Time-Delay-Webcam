@@ -8,9 +8,9 @@ time_delay = 5
 # Initialize the video capture with optimized settings
 cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Using V4L2 backend
 
-# Set a lower resolution and a higher frame rate for better performance
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 854)
+# Set a lower resolution for better performance
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 cap.set(cv2.CAP_PROP_FPS, 30)
 
 # Verify if the webcam was opened correctly
@@ -23,6 +23,10 @@ fps = cap.get(cv2.CAP_PROP_FPS)
 if fps == 0:
     fps = 30  # Default FPS if not available
 frame_delay = int(fps * time_delay)
+
+# Get monitor resolution (modify these values to match your monitor's resolution)
+monitor_width = 1920  # Example width for a 1080p monitor
+monitor_height = 1080  # Example height for a 1080p monitor
 
 # Create a deque to store frames for the delay
 frame_queue = deque(maxlen=frame_delay)
@@ -39,8 +43,11 @@ while True:
 
     # Skip frames to reduce load
     if frame_count % skip_frames == 0:
-        # Add the current frame to the deque
-        frame_queue.append(frame)
+        # Resize the frame to fill the monitor
+        resized_frame = cv2.resize(frame, (monitor_width, monitor_height), interpolation=cv2.INTER_LINEAR)
+
+        # Add the resized frame to the deque
+        frame_queue.append(resized_frame)
 
         # If the deque is filled, get the oldest frame for delayed display
         if len(frame_queue) == frame_delay:
@@ -48,7 +55,7 @@ while True:
             cv2.imshow('Delayed Video', delayed_frame)
         else:
             # Display black frames until the delay period is reached
-            black_frame = np.zeros_like(frame)
+            black_frame = np.zeros((monitor_height, monitor_width, 3), dtype=np.uint8)
             cv2.imshow('Delayed Video', black_frame)
 
     frame_count += 1
